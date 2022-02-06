@@ -281,8 +281,8 @@ def EBCOT_compression(im, destination, max_depth=None):
     ebcot = EBCOT_Compressor(im)
     low = 0 if max_depth is None else max(0, ebcot.N - max_depth)
 
-    with open(destination, "w"):  # Clear file
-        pass
+    with open(destination, "w") as out:  # Clear file
+        out.write(f'{ebcot.N}\n{im.shape[0]}, {im.shape[1]}, {im.shape[2]}\n')
 
     debug(f"--NB PLAN - {ebcot.N}--")
     for n in range(ebcot.N - 1, low - 1, -1):
