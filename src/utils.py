@@ -1,3 +1,5 @@
+DEBUG = True
+
 
 def sign(x):
     if x is None:
@@ -15,3 +17,8 @@ def sign2(x):
     if x >= 0:
         return 1
     return -1
+
+
+def debug(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)

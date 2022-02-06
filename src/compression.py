@@ -2,10 +2,10 @@ from math import log, floor
 
 import numpy as np
 
-from utils import sign, sign2
+from utils import sign, sign2, debug
 
 
-class BlockController:
+class EBCOT_Compressor:
 
     def __init__(self, im: np.array, length: int = 5):
         self.L = length
@@ -28,7 +28,9 @@ class BlockController:
 
     def write(self, destination, mode="w"):
         with open(destination, mode) as out:
+            out.write(f"---PLAN START {self.n}---\n")
             out.write(self.buffer)
+            out.write("---PLAN END---\n")
         self.buffer = ""
 
     # Focus
@@ -54,7 +56,7 @@ class BlockController:
         r = aux()
         if r:
             self.size = (min(4, self.shape[0] - self.offset[0]), min(self.L, self.shape[1] - self.offset[1]))
-        print(f'   --Bloc {self.offset} - {self.size} - {r}--')
+        debug(f'   --Bloc {self.offset} - {self.size} - {r}--')
         return r
 
     def reset_channel(self):
@@ -71,7 +73,7 @@ class BlockController:
             return True
 
         r = aux()
-        print(f' --CHANNEL {self.channel} - {r}--')
+        debug(f' --CHANNEL {self.channel} - {r}--')
         return r
 
     def next_plan(self):
@@ -80,7 +82,7 @@ class BlockController:
         self.reset_channel()
         self.reset_bloc()
         self.KSP = np.copy(self.KS)
-        print(f'--PLAN {self.n} - {2 ** self.n}--')
+        debug(f'--PLAN {self.n} - {2 ** self.n}--')
 
     # Getters
 
@@ -132,7 +134,7 @@ class BlockController:
     def buff(self, *args):
         txt = ' '.join(map(str, args))
         self.buffer += txt + '\n'
-        print('     ' + txt)
+        debug('     ' + txt)
 
     def set_processed(self, i, j):
         di, dj = self.offset
@@ -149,8 +151,11 @@ class BlockController:
 
     def KD(self, i, j, data=None):
         data = self.resolve_data(data)
-        return self.isKs(i + 1, j + 1, data) + self.isKs(i + 1, j - 1, data) + \
-                self.isKs(i - 1, j + 1, data) + self.isKs(i - 1, j - 1, data)
+        return \
+            self.isKs(i + 1, j + 1, data) + \
+            self.isKs(i + 1, j - 1, data) + \
+            self.isKs(i - 1, j + 1, data) + \
+            self.isKs(i - 1, j - 1, data)
 
     def haveNeighbourKS(self, i, j):
         if self.KV(i, j, self.KSP) > 0:
@@ -200,24 +205,24 @@ class BlockController:
         else:
             self.buff(refining, 'MR', int((self.KH(i, j) + self.KV(i, j)) != 0))
 
-    def ZCctx(self, i, j):
-        kh, kv, kd = self.KH(i, j), self.KV(i, j), self.KD(i, j)
-        strip = self.getStripIndex(i, j)
-        if strip == "HH":
-            return min(8, 3 * (kh + kv) + min(2, kd))
-        if strip == "HL":
-            kh, kv = kv, kh
-        if kh == kv == 0:
-            return min(kd, 2)
-        if kh == 0:
-            return 2 + kv
-        if kv == 0:
-            return 5 + (kd != 0)
-        return 6 + kh
-
     def ZC(self, i, j):
+        def ZC_ctx():
+            kh, kv, kd = self.KH(i, j), self.KV(i, j), self.KD(i, j)
+            strip = self.getStripIndex(i, j)
+            if strip == "HH":
+                return min(8, 3 * (kh + kv) + min(2, kd))
+            if strip == "HL":
+                kh, kv = kv, kh
+            if kh == kv == 0:
+                return min(kd, 2)
+            if kh == 0:
+                return 2 + kv
+            if kv == 0:
+                return 5 + (kd != 0)
+            return 6 + kh
+
         is_ks = abs(self.getK(i, j)) >= 2 ** self.n
-        self.buff(int(is_ks), 'ZC', self.ZCctx(i, j))
+        self.buff(int(is_ks), 'ZC', ZC_ctx())
         if is_ks:
             self.SC(i, j)
         return is_ks
@@ -226,7 +231,7 @@ class BlockController:
 
     def propagation(self):
         self.reset_bloc()
-        print('  --PROPAGATION--')
+        debug('  --PROPAGATION--')
         while self.next_bloc():
             for i in range(self.size[0]):
                 for j in range(self.size[1]):
@@ -234,13 +239,13 @@ class BlockController:
                         self.set_processed(i, j)
 
             for j in range(self.size[1]):
-                print(f'    ---{j}---')
+                debug(f'    ---{j}---')
                 for i in range(self.size[0]):
                     if self.get_processed(i, j):
                         self.ZC(i, j)
 
     def affinage(self):
-        print('  --AFFINAGE--')
+        debug('  --AFFINAGE--')
         self.reset_bloc()
         while self.next_bloc():
             for j in range(self.size[1]):
@@ -250,12 +255,12 @@ class BlockController:
                         self.set_processed(i, j)
 
     def nettoyage(self):
-        print('  --NETTOYAGE--')
+        debug('  --NETTOYAGE--')
         self.reset_bloc()
         rl = True
         while self.next_bloc():
             for j in range(self.size[1]):
-                print(f'    ---{j}---')
+                debug(f'    ---{j}---')
                 rl_i = 0
                 if rl:
                     rl_i = self.RL(j)
@@ -271,17 +276,21 @@ class BlockController:
 
 
 # main part
-def EBCOT_compression(im, destination, max_depth):
-    bc = BlockController(im)
-    low = max(0, bc.N - 1 - max_depth)
-    print(f"--NB PLAN - {bc.N}--")
+def EBCOT_compression(im, destination, max_depth=None):
     first = True
-    for n in range(bc.N - 1, low, -1):
-        bc.next_plan()
-        while bc.next_channel():
+    ebcot = EBCOT_Compressor(im)
+    low = 0 if max_depth is None else max(0, ebcot.N - max_depth)
+
+    with open(destination, "w"):  # Clear file
+        pass
+
+    debug(f"--NB PLAN - {ebcot.N}--")
+    for n in range(ebcot.N - 1, low - 1, -1):
+        ebcot.next_plan()
+        while ebcot.next_channel():
             if not first:
-                bc.propagation()
-                bc.affinage()
-            bc.nettoyage()
+                ebcot.propagation()
+                ebcot.affinage()
+            ebcot.nettoyage()
         first = False
-        bc.write(f'{n}_{destination}')
+        ebcot.write(destination, "a")

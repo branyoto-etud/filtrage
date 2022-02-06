@@ -1,22 +1,38 @@
 import numpy as np
+from PIL import Image
 
-from compression import EBCOT_compression
+import compression
+import utils
 from wavelet import wavelet
 
 
 def color_mapping(im):
-    return im - 128
+    return im.astype(int) - 128
 
 
-def compress(im, destination, max_depth):
+def compress(im, destination, max_depth=None):
+    # Color normalization
     im = color_mapping(im)
-    im = wavelet(im)
+    # Wavelet transform + Quantization
+    im[:, :, 0] = wavelet(im[:, :, 0])
+    im[:, :, 1] = wavelet(im[:, :, 1])
+    im[:, :, 2] = wavelet(im[:, :, 2])
+    im = np.rint(im).astype(int)
+    # EBCOT compression
+    compression.EBCOT_compression(im, destination, max_depth)
 
-    EBCOT_compression(im, destination, max_depth)
+
+def fake_image():
+    with open('source/fake_image.txt', 'r') as f:
+        fake_image = [[[int(x)] for x in line.replace('\n', '').split(' ')] for line in f.readlines()]
+
+    compression.EBCOT_compression(np.array(fake_image), "compressed/fake_image.txt")
 
 
 if __name__ == '__main__':
-    with open('source/img.txt', 'r') as f:
-        images = [[[int(x)] for x in l.replace('\n', '').split(' ')] for l in f.readlines()]
+    utils.DEBUG = False
 
-    compress(np.array(images), "tmp.txt", 2)
+    with Image.open('source/shield_power.png') as im:
+        im = im.convert('RGB')
+        im = np.asarray(im)
+        compress(im, 'compressed/shield_power.txt', 2)
