@@ -190,7 +190,7 @@ class EBCOT_Compressor:
         dh = sign(sign(self.getKS(i, j - 1)) + sign(self.getKS(i, j + 1)))
         p = dh if dh != 0 else (dv if dv != 0 else 1)
         ctx = abs(dh * 3 + dv)
-        self.buff(int(p != sign2(self.getKS(i, j))), 'SC', ctx)
+        self.buff(int(p != sign2(self.getKS(i, j))), 'SC', ctx, self.getKS(i, j))
 
     def RL(self, j):
         at_least_one = False
@@ -241,8 +241,8 @@ class EBCOT_Compressor:
     # Passes
 
     def propagation(self):
-        self.reset_bloc()
         debug('  --PROPAGATION--')
+        self.reset_bloc()
         while self.next_bloc():
             for i in range(self.size[0]):
                 for j in range(self.size[1]):
@@ -272,6 +272,7 @@ class EBCOT_Compressor:
         while self.next_bloc():
             for j in range(self.size[1]):
                 debug(f'    ---{j}---')
+                self.buff(f'----{j}----')
                 rl_i = 0
                 if rl:
                     rl_i = self.RL(j)
@@ -293,7 +294,7 @@ def EBCOT_compression(im, destination, max_depth=None):
     low = 0 if max_depth is None else max(0, ebcot.N - max_depth)
 
     with open(destination, "w") as out:  # Clear file
-        out.write(f'{ebcot.N}\n{im.shape[0]}, {im.shape[1]}, {im.shape[2]}\n')
+        out.write(f'{ebcot.N} {ebcot.L}\n{im.shape[0]}, {im.shape[1]}, {im.shape[2]}\n')
 
     debug(f"--NB PLAN - {ebcot.N}--")
     for n in range(ebcot.N - 1, low - 1, -1):
