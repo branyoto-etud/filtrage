@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 
 import compression
+import decompression
 import utils
 from wavelet import wavelet
 
@@ -29,6 +30,9 @@ def compress_fake_image():
     compression.EBCOT_compression(np.array(fake_image), "compressed/fake_image.txt")
 
 
+def decompress_fake_image():
+    decompression.EBCOT_decompression('compressed/fake_image.txt', 'decompressed/fake_image.txt')
+
 def image_transform_verification(im):  # Show the result of wavelet transform + quantization
     im = color_mapping(im)
     # Wavelet transform + Quantization
@@ -51,5 +55,6 @@ def compress_shield_image():
 
 
 if __name__ == '__main__':
-    utils.DEBUG = False
-    compress_shield_image()
+    # utils.DEBUG = False
+    # compress_shield_image()
+    decompress_fake_image()

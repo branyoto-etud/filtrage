@@ -9,7 +9,7 @@ class EBCOT_Compressor:
 
     def __init__(self, im: np.array, length: int = 5):
         self.L = length
-        self.shape = im.shape
+        self.shape = im.shape if len(im.shape) >= 3 else (*im.shape, 1)
         self.buffer = ""
         self.im = im
         self.N = int(floor(log(abs(im.max()), 2)) + 1)
@@ -67,7 +67,7 @@ class EBCOT_Compressor:
             if self.channel is None:
                 self.channel = 0
                 return True
-            if len(self.shape) < 3 or self.channel + 1 >= self.shape[2]:
+            if self.channel + 1 >= self.shape[2]:
                 return False
             self.channel += 1
             return True
