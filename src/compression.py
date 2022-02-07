@@ -7,11 +7,22 @@ from utils import sign, sign2, debug
 
 class EBCOT_Compressor:
 
+    @staticmethod
+    def correct_shape(im):
+        shape = im.shape
+        if len(shape) == 1:
+            raise Exception('Cannot process 1D-image')
+        if len(shape) == 2:
+            im = im.reshape((*shape, 1))
+        if len(shape) > 3:
+            raise Exception('Cannot only process 2D image with eventually color channels as third dimension')
+        return im
+
     def __init__(self, im: np.array, length: int = 5):
         self.L = length
-        self.shape = im.shape if len(im.shape) >= 3 else (*im.shape, 1)
+        self.im = self.correct_shape(im)
+        self.shape = self.im.shape
         self.buffer = ""
-        self.im = im
         self.N = int(floor(log(abs(im.max()), 2)) + 1)
         self.KS = np.zeros_like(im)
         self.KSP = np.zeros_like(im)
