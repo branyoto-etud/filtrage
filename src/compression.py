@@ -14,7 +14,7 @@ class EBCOT_Compressor:
         self.im = im
         self.N = int(floor(log(abs(im.max()), 2)) + 1)
         self.KS = np.zeros_like(im)
-        self.KSP = None
+        self.KSP = np.zeros_like(im)
         self.channel = None
         self.offset = None
         self.size = None
@@ -81,7 +81,7 @@ class EBCOT_Compressor:
         self.processed = np.zeros_like(self.im)
         self.reset_channel()
         self.reset_bloc()
-        self.KSP = np.copy(self.KS)
+        self.KSP += self.KS
         debug(f'--PLAN {self.n} - {2 ** self.n}--')
 
     # Getters
