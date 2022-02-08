@@ -15,7 +15,6 @@ The conversion between the two shouldn't be that hard:
 
 And that's it I think.
 
-The decompression isn't available atm, but will be soon or later.
 As said, this is more of an exemple that the compression work than a real
 program to compress images. If you want a real compression, internet
-is plenty of online converter for images.
+is plenty of online converter for JPEG-2000 format.
